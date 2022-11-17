@@ -13,29 +13,42 @@ import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 contract Egg is ERC721, Ownable {
 
     using SafeMath for uint256;
+    using SafeMath for uint16;
 
-    uint256 private constant priceOfEgg = 100000 * 10 ** 18;
-    uint256 private constant standardPrize = 1000000 * 10 ** 18;
-
-    address private constant BUSDAddress = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
-    address private constant USDTAddress = 0x55d398326f99059fF775485246999027B3197955;
-    address private constant USDCAddress = 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d;
+    uint256 private constant priceOfEgg = 1000 * 10 ** 9;
+    uint256 private constant standardPrize = 600 * 10 ** 9;
     address private constant DEAD = 0x000000000000000000000000000000000000dEaD;
 
+    address private BUSDAddress;
+    address private USDTAddress;
+    address private USDCAddress;
     address private _chicken;
-    address private _NPC = payable(0xA7EBBB5C7cc4733853A37bD2Eb3A2920Eff75324);
 
-    address private _chickenTown = 0x4f5e949A3096F5A4604A501B65B658621dbedd33;
+    address private _NPC = payable(0xA7EBBB5C7cc4733853A37bD2Eb3A2920Eff75324);
+    address private _chickenTown = 0x61B07aBdf115A7F54a88ecf97Fb82750A99cDa9f;
     address public _treasuryWallet =  payable(0xA7EBBB5C7cc4733853A37bD2Eb3A2920Eff75324);
 
     IUniswapV2Router02 uniswapV2Router;
 
     constructor() ERC721("Egg", "EggNFT") {
 
-        // IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+        if (block.chainid == 56) {
+            IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
+            BUSDAddress = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
+            USDTAddress = 0x55d398326f99059fF775485246999027B3197955;
+            USDCAddress = 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d;
+            uniswapV2Router = _uniswapV2Router;
+         
+        } else if (block.chainid == 97) {
+            IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);
+            uniswapV2Router = _uniswapV2Router;
+            BUSDAddress = 0xeD24FC36d5Ee211Ea25A80239Fb8C4Cfd80f12Ee;
+            USDTAddress = 0x337610d27c682E347C9cD60BD4b3b107C9d34dDd;
+            USDCAddress = 0x64544969ed7EBf5f083679233325356EbE738930;            
+        } else {
+            revert();
+        }
 
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);
-        uniswapV2Router = _uniswapV2Router;
 
     }
 
@@ -71,12 +84,12 @@ contract Egg is ERC721, Ownable {
     }
 
     Prizes public _prizes = Prizes({
-        firstPrize: 20000,
-        secondPrize: 15000,
-        thirdPrize: 10000,
-        fourthPrize: 8000,
-        fifthPrize: 5000,
-        sixthPrize: 3000
+        firstPrize: 200,
+        secondPrize: 150,
+        thirdPrize: 100,
+        fourthPrize: 80,
+        fifthPrize: 50,
+        sixthPrize: 30
     });
 
     function ChickenAddress() external view returns (address chicken) {
@@ -91,6 +104,13 @@ contract Egg is ERC721, Ownable {
         _chicken = chicken;
     }
 
+    function setchickenTown(address chickenTown) external onlyOwner {
+
+        require(chickenTown != address(0), "Chicken Town address is not NULL address");
+
+        _chickenTown = chickenTown;
+    }
+
     function NPCAddress() external view returns (address NPC) {
         
          NPC = _NPC;
@@ -102,6 +122,7 @@ contract Egg is ERC721, Ownable {
 
         _NPC = NPC;
     }
+
 
     function swapExactTokensForBNB(uint256 amount, address user) private {
         ERC20 Token = ERC20(_chickenTown);
@@ -151,31 +172,47 @@ contract Egg is ERC721, Ownable {
         
     }
 
+    function swapExactTokensForUSDC(uint256 amount, address user) private {
+        ERC20 Token = ERC20(_chickenTown);
+        Token.approve(address(uniswapV2Router), amount);
+        address[] memory path = new address[](2);
+        path[0] = _chickenTown;
+        path[1] = USDCAddress;
+        uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            amount,
+            0,
+            path,
+            user,
+            block.timestamp
+        );
+        
+    }
+
     function Prize(uint256 ID) private view returns (uint256) {
 
         if (Eggs[ID].attribute < 100 && Eggs[ID].attribute > 97) {
 
-            return _prizes.fifthPrize * standardPrize ;
+            return (_prizes.firstPrize + 100).div(10 ** 2).mul(standardPrize);
 
         } else if (Eggs[ID].attribute < 98 && Eggs[ID].attribute > 96) {
 
-            return _prizes.secondPrize * standardPrize;
+            return (_prizes.secondPrize + 100).div(10 ** 2).mul(standardPrize);
 
         } else if (Eggs[ID].attribute < 95 && Eggs[ID].attribute > 91) {
 
-            return _prizes.thirdPrize * standardPrize;
+            return (_prizes.thirdPrize + 100).div(10 ** 2).mul(standardPrize);
 
         } else if (Eggs[ID].attribute < 90 && Eggs[ID].attribute > 71) {
 
-            return _prizes.fourthPrize * standardPrize;
+            return (_prizes.fourthPrize + 100).div(10 ** 2).mul(standardPrize);
 
         } else if (Eggs[ID].attribute < 70 && Eggs[ID].attribute > 41) {
 
-            return _prizes.fifthPrize * standardPrize;
+            return (_prizes.fifthPrize + 100).div(10 ** 2).mul(standardPrize);
 
         } else {
 
-            return _prizes.sixthPrize * standardPrize;
+            return (_prizes.sixthPrize + 100).div(10 ** 2).mul(standardPrize);
 
         }
 
@@ -201,6 +238,8 @@ contract Egg is ERC721, Ownable {
     }
 
 
+    event EggInfo(uint256 ID, address owner);
+
     function getEggFromChicken(uint256 ID0, uint256 ID1, address user) external onlyChicken {
 
         uint256 ID = Eggs.length;
@@ -210,6 +249,8 @@ contract Egg is ERC721, Ownable {
         Eggs.push(EggNFT(attribute));
 
         _safeMint(user, ID);
+
+        emit EggInfo(ID, user);
 
     }
 
@@ -223,6 +264,8 @@ contract Egg is ERC721, Ownable {
         Eggs.push(EggNFT(attribute));
 
         _safeMint(user, ID);
+
+        emit EggInfo(ID, user);
 
     }
 
@@ -242,10 +285,13 @@ contract Egg is ERC721, Ownable {
 
             _safeMint(msg.sender, nftID);
 
+            emit EggInfo(ID, msg.sender);
+
         }
 
     }
 
+    event PrizeInfo(uint256 amount, address owner);
 
     function openEgg(uint256[] memory IDs) external {
 
@@ -255,22 +301,27 @@ contract Egg is ERC721, Ownable {
                 ownerOf(ID) == msg.sender, "You are not owner"
             );
 
-            uint256 factor = uint256(keccak256(abi.encodePacked(ID, block.number, msg.sender))).mod(4);
+            uint256 factor = uint256(keccak256(abi.encodePacked(ID, block.number, msg.sender))).mod(5);
 
             if (factor == 0) {
 
-                // swapExactTokensForBNB(Prize(ID), msg.sender);
-                ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, Prize(ID));
+                swapExactTokensForBNB(Prize(ID), msg.sender);
+                // ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, Prize(ID));
 
             } else if (factor == 1) {
 
-                // swapExactTokensForBNB(Prize(ID), msg.sender);
-                ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, Prize(ID));
+                swapExactTokensForBUSD(Prize(ID), msg.sender);
+                // ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, Prize(ID));
 
             } else if (factor == 2) {
 
-                // swapExactTokensForUSDT(Prize(ID), msg.sender);
-                ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, Prize(ID));
+                swapExactTokensForUSDT(Prize(ID), msg.sender);
+                // ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, Prize(ID));
+
+            } else if (factor == 3) {
+
+                swapExactTokensForUSDC(Prize(ID), msg.sender);
+                // ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, Prize(ID));
 
             } else {
 
@@ -279,6 +330,8 @@ contract Egg is ERC721, Ownable {
             }
 
             transferFrom(msg.sender, DEAD, ID);
+
+            emit PrizeInfo(Prize(ID), msg.sender); 
 
         }
 
