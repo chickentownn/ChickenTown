@@ -23,6 +23,7 @@ contract ChickenTown is Context, Ownable, IERC20   {
 
     uint256 private constant MAX = ~uint256(0);
     uint256 private constant _tTotal = 1 * 10**6 * 10**9;
+    uint256 private constant numTokensSellToAddToLiquidity = 1 * 10**9;
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
@@ -47,6 +48,7 @@ contract ChickenTown is Context, Ownable, IERC20   {
     
     bool inSwapAndLiquify;
     bool public swapAndLiquifyEnabled = true;
+    
     
     event SwapAndLiquify(
         uint256 tokensSwapped,
@@ -323,9 +325,7 @@ contract ChickenTown is Context, Ownable, IERC20   {
         require(amount > 0, "Transfer amount must be greater than zero");
 
         uint256 contractTokenBalance = balanceOf(address(this));
-        
-        
-        bool overMinTokenBalance = contractTokenBalance > 0;
+        bool overMinTokenBalance = contractTokenBalance >= numTokensSellToAddToLiquidity;
         if (
             overMinTokenBalance &&
             !inSwapAndLiquify &&
