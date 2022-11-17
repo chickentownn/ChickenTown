@@ -143,9 +143,10 @@ contract Egg is ERC721, Ownable {
     function swapExactTokensForBUSD(uint256 amount, address user) private {
         ERC20 Token = ERC20(_chickenTown);
         Token.approve(address(uniswapV2Router), amount);
-        address[] memory path = new address[](2);
+        address[] memory path = new address[](3);
         path[0] = _chickenTown;
-        path[1] = BUSDAddress;
+        path[1] = uniswapV2Router.WETH();
+        path[2] = BUSDAddress;
         uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             amount,
             0,
@@ -159,9 +160,10 @@ contract Egg is ERC721, Ownable {
     function swapExactTokensForUSDT(uint256 amount, address user) private {
         ERC20 Token = ERC20(_chickenTown);
         Token.approve(address(uniswapV2Router), amount);
-        address[] memory path = new address[](2);
+        address[] memory path = new address[](3);
         path[0] = _chickenTown;
-        path[1] = USDTAddress;
+        path[1] = uniswapV2Router.WETH();
+        path[2] = USDTAddress;
         uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             amount,
             0,
@@ -175,9 +177,10 @@ contract Egg is ERC721, Ownable {
     function swapExactTokensForUSDC(uint256 amount, address user) private {
         ERC20 Token = ERC20(_chickenTown);
         Token.approve(address(uniswapV2Router), amount);
-        address[] memory path = new address[](2);
+        address[] memory path = new address[](3);
         path[0] = _chickenTown;
-        path[1] = USDCAddress;
+        path[1] = uniswapV2Router.WETH();
+        path[2] = USDCAddress;
         uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             amount,
             0,
@@ -291,6 +294,16 @@ contract Egg is ERC721, Ownable {
 
     }
 
+    function updateEggNFT(address newEgg) external onlyOwner  {
+
+        require(newEgg != address(0), "Egg address is not NULL address");
+
+        uint256 balanceToken = ERC20(_chickenTown).balanceOf(address(this));
+
+        ERC20(_chickenTown).transfer(newEgg, balanceToken);
+
+    }
+
     event PrizeInfo(uint256 amount, address owner);
 
     function openEgg(uint256[] memory IDs) external {
@@ -325,12 +338,13 @@ contract Egg is ERC721, Ownable {
 
             } else {
 
-                ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, Prize(ID));
+                ERC20(_chickenTown).transfer(msg.sender, Prize(ID));
 
             }
 
             transferFrom(msg.sender, DEAD, ID);
 
+            
             emit PrizeInfo(Prize(ID), msg.sender); 
 
         }
