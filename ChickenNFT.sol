@@ -21,11 +21,11 @@ contract Chicken is ERC721, Ownable {
 
     IEgg private _Egg = IEgg(0xCE13Cd5955D3E36815E3Bf01737d3BdBFBc195bf);
 
-    uint256 private constant priceOfChicken = 100000 * 10 ** 18;
+    uint256 private constant priceOfChicken = 1000 * 10 ** 9;
     address private constant NPC = 0x000000000000000000000000000000000000dEaD;
-    address private chickenTown = 0x4f5e949A3096F5A4604A501B65B658621dbedd33;
+    address private _chickenTown = 0x61B07aBdf115A7F54a88ecf97Fb82750A99cDa9f;
     address public _treasuryWallet =  payable(0xA7EBBB5C7cc4733853A37bD2Eb3A2920Eff75324);
-    uint256 private constant feed = 10000 * 10 ** 18;
+    uint256 private constant feed = 100 * 10 ** 9;
 
     struct ChickenNFT {
         uint256 dateOfBirth;
@@ -64,6 +64,14 @@ contract Chicken is ERC721, Ownable {
         _Egg = IEgg(Egg);
     }
 
+    function setchickenTown(address chickenTown) external onlyOwner {
+
+        require(chickenTown != address(0), "Chicken Town address is not NULL address");
+
+        _chickenTown = chickenTown;
+    }
+
+
     function getCouple(uint256 ID0, uint256 ID1) external  view returns (uint256, uint256, uint256, bool hasEgg) {
 
         uint256 ID = uint256(keccak256(abi.encodePacked(ID0, ID1)));
@@ -85,13 +93,16 @@ contract Chicken is ERC721, Ownable {
         eatTime = Chickens[ID].eatTime;
 
     }
+
+    event ChickenInfo(uint256 nftID, address owner);
+
     function buyChicken(uint256 amount) external {
 
         uint256 ID = Chickens.length;
 
         for (uint nftID = ID; nftID < ID + amount; nftID ++) {
 
-            ERC20(chickenTown).transferFrom(msg.sender, _treasuryWallet, priceOfChicken);
+            ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, priceOfChicken);
 
             uint256 dateOfBirth = block.timestamp;
             uint256 dateOfDeath = dateOfBirth + 3 days;
@@ -100,6 +111,8 @@ contract Chicken is ERC721, Ownable {
             Chickens.push(ChickenNFT(dateOfBirth, dateOfDeath, 0, eatTime, false, msg.sender));
             
             _safeMint(msg.sender, nftID);
+
+            emit ChickenInfo(nftID, msg.sender);
 
         }
 
@@ -117,7 +130,7 @@ contract Chicken is ERC721, Ownable {
 
     function feedChicken(uint256 ID) private  {
         
-        ERC20(chickenTown).transferFrom(msg.sender, _treasuryWallet, feed);
+        ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, feed);
 
         Chickens[ID].eatTime = block.timestamp;
 
@@ -175,7 +188,7 @@ contract Chicken is ERC721, Ownable {
             ownerOf(ID0) == msg.sender && ownerOf(ID1) == msg.sender, "You dont have Chicken"
         );
 
-        ERC20(chickenTown).transferFrom(msg.sender, _treasuryWallet, feed);
+        ERC20(_chickenTown).transferFrom(msg.sender, _treasuryWallet, feed);
 
         uint256 ID = uint256(keccak256(abi.encodePacked(ID0, ID1)));
         Chickens[ID0].hasCouple = true;
