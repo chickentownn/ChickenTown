@@ -40,7 +40,6 @@ contract Chicken is ERC721, Ownable {
     struct CoupleChicken {
         uint256 ID0;
         uint256 ID1;
-        bool hasEgg;
     }
 
     mapping(uint256 => CoupleChicken) public couples;
@@ -72,15 +71,15 @@ contract Chicken is ERC721, Ownable {
     }
 
 
-    function getCouple(uint256 ID0, uint256 ID1) external  view returns (uint256, uint256, uint256, bool hasEgg) {
+    function getCouple(uint256 ID0, uint256 ID1) external  view returns (uint256, uint256, uint256, uint256) {
 
         uint256 ID = uint256(keccak256(abi.encodePacked(ID0, ID1)));
 
         require(Chickens[ID0].IDCouple == ID && Chickens[ID1].IDCouple == ID, "They are not a couple");
 
-        (Chickens[ID0].eatTime + 3 minutes < block.timestamp && Chickens[ID1].eatTime + 3 minutes < block.timestamp) ? hasEgg = true : hasEgg = false;
+        ( , uint256 countdown) = getEgg(ID0, ID1);
 
-        return(ID, couples[ID].ID0, couples[ID].ID1, hasEgg);
+        return(ID, couples[ID].ID0, couples[ID].ID1, countdown);
 
     }
 
@@ -118,13 +117,15 @@ contract Chicken is ERC721, Ownable {
 
     }
 
-    function sellChickenForNPC(uint256 ID) external {
+    function sellChickenForNPC(uint256[] memory IDs) external {
+        for (uint ID = 0; ID < IDs.length; ID ++) {
 
-        require(
-            !Chickens[ID].hasCouple, "Your chicken has couple, dont sell it"
-        );
+            require(
+                !Chickens[IDs[ID]].hasCouple, "Your chicken has couple, dont sell it"
+            );
 
-        transferFrom(msg.sender, NPC, ID);
+            transferFrom(msg.sender, NPC, IDs[ID]);
+        }
 
     }
 
@@ -136,7 +137,49 @@ contract Chicken is ERC721, Ownable {
 
     }
 
-    function getEgg(uint256 ID0, uint256 ID1) external {
+    function eatingTimeOfChicken(uint256 ID) private view returns (uint256) {
+
+        if ((Chickens[ID].eatTime + 1 minutes < block.timestamp) && (Chickens[ID].eatTime + 2 minutes > block.timestamp)) {
+
+            return 1;
+
+            }  else if ((Chickens[ID].eatTime + 2 minutes < block.timestamp) && (Chickens[ID].eatTime + 3 minutes > block.timestamp)) {
+
+            return 2;
+
+            } else if (Chickens[ID].eatTime + 3 minutes < block.timestamp)
+
+            return 3;
+
+        return 0;
+
+    }
+
+    function getEgg(uint256 ID0, uint256 ID1) private view returns (uint256, uint256) {
+
+        if ((eatingTimeOfChicken(ID0) == 0) && (eatingTimeOfChicken(ID1) == 0)) {
+
+            return (0, 3 minutes);
+
+
+            }  else  if ((eatingTimeOfChicken(ID0) == 1) && (eatingTimeOfChicken(ID1) == 1)) {
+
+
+            return (1, 2 minutes);
+
+            }  else if ((eatingTimeOfChicken(ID0) == 2) && (eatingTimeOfChicken(ID1) == 2)) { // 2 Energy
+ 
+            return (2, 1 minutes);
+
+            }
+
+        return (3, 0);
+        
+    }
+
+    function claimEgg(uint256 ID0, uint256 ID1) external {
+
+        (uint256 amountOfEgg, ) = getEgg(ID0, ID1);
 
         uint256 ID = uint256(keccak256(abi.encodePacked(ID0, ID1)));
 
@@ -147,35 +190,29 @@ contract Chicken is ERC721, Ownable {
             Chickens[ID0].IDCouple == ID && Chickens[ID1].IDCouple == ID, "Couple ID miss match !"
         );
 
-        (Chickens[ID0].eatTime + 3 minutes < block.timestamp && Chickens[ID1].eatTime + 3 minutes < block.timestamp) ? couples[ID].hasEgg = true : couples[ID].hasEgg = false;
+        for (uint i = 0; i < amountOfEgg; i ++) {
+            feedChicken(ID0);
 
-        require(couples[ID].hasEgg, "You do not have any egg");
+            feedChicken(ID1);
 
-        couples[ID].hasEgg = false;
+            _Egg.getEggFromChicken(ID0, ID1, msg.sender);
+        }
+            Chickens[ID0].eatTime = block.timestamp;
 
-        feedChicken(ID0);
+            Chickens[ID1].eatTime = block.timestamp;
 
-        feedChicken(ID1);
 
-        Chickens[ID0].eatTime = block.timestamp;
-
-        Chickens[ID1].eatTime = block.timestamp;
-
-        _Egg.getEggFromChicken(ID0, ID1, msg.sender);
-
-        
     }
+    function madeChicken(uint256[] memory IDs) external {
+        for (uint ID = 0; ID < IDs.length; ID ++) {
+            require(
+                !Chickens[IDs[ID]].hasCouple, "Your chicken has couple, dont kill it"
+            );
 
-    function madeChicken(uint256 ID) external {
+            transferFrom(msg.sender, NPC, IDs[ID]);
 
-        require(
-            !Chickens[ID].hasCouple, "Your chicken has couple, dont kill it"
-        );
-
-        transferFrom(msg.sender, NPC, ID);
-
-        _Egg.getEggFromMadeChicken(ID, msg.sender);
-
+            _Egg.getEggFromMadeChicken(IDs[ID], msg.sender);
+        }
     }
 
 
