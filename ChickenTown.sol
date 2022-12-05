@@ -22,8 +22,8 @@ contract ChickenTown is Context, Ownable, IERC20   {
     mapping (address => bool) private _isExcluded;
 
     uint256 private constant MAX = ~uint256(0);
-    uint256 private constant _tTotal = 1 * 10**6 * 10**9;
-    uint256 private constant numTokensSellToAddToLiquidity = 1 * 10**9;
+    uint256 private constant _tTotal = 100 * 10**6 * 10**9;
+    uint256 private constant numTokensSellToAddToLiquidity = 1000 * 10**9;
     uint256 private _rTotal = (MAX - (MAX % _tTotal));
     uint256 private _tFeeTotal;
 
@@ -41,7 +41,7 @@ contract ChickenTown is Context, Ownable, IERC20   {
     string private constant _symbol = "ChickenTown";
     uint8 private constant _decimals = 9;
     
-    address payable private _TreasuryAddress = payable(0xA7EBBB5C7cc4733853A37bD2Eb3A2920Eff75324);
+    address payable private _TreasuryAddress = payable(0x9f31A66522596287536035b6C5F1E0777b323E64);
 
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
@@ -169,29 +169,8 @@ contract ChickenTown is Context, Ownable, IERC20   {
         uint256 currentRate =  _getRate();
         return rAmount.div(currentRate);
     }
-    
-    function excludeFromReward(address account) public onlyOwner() {
-        require(!_isExcluded[account], "Account is already excluded");
-        if(_rOwned[account] > 0) {
-            _tOwned[account] = tokenFromReflection(_rOwned[account]);
-        }
-        _isExcluded[account] = true;
-        _excluded.push(account);
-    }
 
-    function includeInReward(address account) external onlyOwner() {
-        require(_isExcluded[account], "Account is already excluded");
-        for (uint256 i = 0; i < _excluded.length; i++) {
-            if (_excluded[i] == account) {
-                _excluded[i] = _excluded[_excluded.length - 1];
-                _tOwned[account] = 0;
-                _isExcluded[account] = false;
-                _excluded.pop();
-                break;
-            }
-        }
-    }
-    function _transferBothExcluded(address sender, address recipient, uint256 tAmount) private {
+        function _transferBothExcluded(address sender, address recipient, uint256 tAmount) private {
         (uint256 rAmount, uint256 rTransferAmount, uint256 rFee, uint256 tTransferAmount, uint256 tFee, uint256 tLiquidity) = _getValues(tAmount);
         _tOwned[sender] = _tOwned[sender].sub(tAmount);
         _rOwned[sender] = _rOwned[sender].sub(rAmount);
@@ -202,7 +181,7 @@ contract ChickenTown is Context, Ownable, IERC20   {
         emit Transfer(sender, recipient, tTransferAmount);
     }
     
-    function excludeFromFee(address account) public onlyDev {
+        function excludeFromFee(address account) public onlyDev {
         _isExcludedFromFee[account] = true;
     }
     
