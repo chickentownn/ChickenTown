@@ -19,7 +19,7 @@ contract Chicken is ERC721, Ownable {
 
     using SafeMath for uint256;
 
-    IEgg private _Egg = IEgg(0xCE13Cd5955D3E36815E3Bf01737d3BdBFBc195bf);
+    IEgg private _Egg = IEgg(0xFB7BAe058261C7e12032ed024c5A2Be2AF116e09);
 
     uint256 private constant priceOfChicken = 1000 * 10 ** 9;
     address private constant NPC = 0x000000000000000000000000000000000000dEaD;
@@ -40,6 +40,7 @@ contract Chicken is ERC721, Ownable {
     struct CoupleChicken {
         uint256 ID0;
         uint256 ID1;
+        uint256 countdown;
     }
 
     mapping(uint256 => CoupleChicken) public couples;
@@ -71,15 +72,15 @@ contract Chicken is ERC721, Ownable {
     }
 
 
-    function getCouple(uint256 ID0, uint256 ID1) external  view returns (uint256, uint256, uint256, uint256) {
+    function getCouple(uint256 ID0, uint256 ID1) external  view returns (uint256, uint256, uint256, uint256, uint256) {
 
         uint256 ID = uint256(keccak256(abi.encodePacked(ID0, ID1)));
 
         require(Chickens[ID0].IDCouple == ID && Chickens[ID1].IDCouple == ID, "They are not a couple");
 
-        ( , uint256 countdown) = getEgg(ID0, ID1);
+        (uint256 nOE, uint256 countdown) = getEgg(ID0, ID1);
 
-        return(ID, couples[ID].ID0, couples[ID].ID1, countdown);
+        return(ID, couples[ID].ID0, couples[ID].ID1, nOE, countdown);
 
     }
 
@@ -139,15 +140,15 @@ contract Chicken is ERC721, Ownable {
 
     function eatingTimeOfChicken(uint256 ID) private view returns (uint256) {
 
-        if ((Chickens[ID].eatTime + 1 minutes < block.timestamp) && (Chickens[ID].eatTime + 2 minutes > block.timestamp)) {
+        if ((Chickens[ID].eatTime + 8 hours < block.timestamp) && (Chickens[ID].eatTime + 16 hours > block.timestamp)) {
 
             return 1;
 
-            }  else if ((Chickens[ID].eatTime + 2 minutes < block.timestamp) && (Chickens[ID].eatTime + 3 minutes > block.timestamp)) {
+            }  else if ((Chickens[ID].eatTime + 16 hours < block.timestamp) && (Chickens[ID].eatTime + 24 hours > block.timestamp)) {
 
             return 2;
 
-            } else if (Chickens[ID].eatTime + 3 minutes < block.timestamp)
+            } else if (Chickens[ID].eatTime + 24 hours < block.timestamp)
 
             return 3;
 
@@ -157,19 +158,21 @@ contract Chicken is ERC721, Ownable {
 
     function getEgg(uint256 ID0, uint256 ID1) private view returns (uint256, uint256) {
 
+        uint256 ID = uint256(keccak256(abi.encodePacked(ID0, ID1)));
+
         if ((eatingTimeOfChicken(ID0) == 0) && (eatingTimeOfChicken(ID1) == 0)) {
 
-            return (0, 3 minutes);
+            return (0, couples[ID].countdown);
 
 
             }  else  if ((eatingTimeOfChicken(ID0) == 1) && (eatingTimeOfChicken(ID1) == 1)) {
 
 
-            return (1, 2 minutes);
+            return (1, couples[ID].countdown);
 
-            }  else if ((eatingTimeOfChicken(ID0) == 2) && (eatingTimeOfChicken(ID1) == 2)) { // 2 Energy
+            }  else if ((eatingTimeOfChicken(ID0) == 2) && (eatingTimeOfChicken(ID1) == 2)) {
  
-            return (2, 1 minutes);
+            return (2, couples[ID].countdown);
 
             }
 
@@ -177,6 +180,8 @@ contract Chicken is ERC721, Ownable {
         
     }
 
+
+    
     function claimEgg(uint256 ID0, uint256 ID1) external {
 
         (uint256 amountOfEgg, ) = getEgg(ID0, ID1);
@@ -200,6 +205,8 @@ contract Chicken is ERC721, Ownable {
             Chickens[ID0].eatTime = block.timestamp;
 
             Chickens[ID1].eatTime = block.timestamp;
+
+            
 
 
     }
@@ -234,6 +241,7 @@ contract Chicken is ERC721, Ownable {
         Chickens[ID1].IDCouple = ID;
         couples[ID].ID0 = ID0;
         couples[ID].ID1 = ID1;
+        couples[ID].countdown = block.timestamp;
 
         
 
